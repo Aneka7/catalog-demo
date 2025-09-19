@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Мой мини‑каталог</title>
+  <style>
+    :root{
+      --bg:#0f1216; --card:#141922; --muted:#8b95a7; --text:#e8eef7; --accent:#7c9eff; --accent-2:#22c55e; --warn:#f59e0b;
+      --border:#263041; --chip:#1b2330; --shadow: 0 10px 30px rgba(0,0,0,.3);
+    }
+    *{box-sizing:border-box} html,body{height:100%}
+    body{margin:0; font-family:ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Cantarell,Noto Sans,sans-serif; background:linear-gradient(180deg,#0b0e13, #121720); color:var(--text)}
+    a{color:inherit; text-decoration:none}
+    .container{max-width:1200px; margin:0 auto; padding:24px}
+    header{position:sticky; top:0; z-index:50; backdrop-filter:saturate(160%) blur(10px); background:rgba(10,14,19,.6); border-bottom:1px solid var(--border)}
+    .head{display:grid; grid-template-columns:1fr auto; gap:16px; align-items:center; padding:16px 0}
+    .brand{display:flex; align-items:center; gap:12px}
+    .logo{width:36px; height:36px; border-radius:10px; background:linear-gradient(135deg,var(--accent),#9d7cff); display:grid; place-items:center; color:white; font-weight:900}
+    .brand h1{font-size:18px; margin:0; letter-spacing:.5px}
+    .actions{display:flex; align-items:center; gap:10px}
+
+    .search{display:flex; align-items:center; gap:10px; background:var(--card); border:1px solid var(--border); padding:10px 12px; border-radius:12px; width:100%}
+    .search input{all:unset; flex:1; color:var(--text)}
+    .chipbar{display:flex; flex-wrap:wrap; gap:8px; margin-top:10px}
+    .chip{padding:8px 10px; border:1px solid var(--border); background:var(--chip); border-radius:999px; color:var(--muted); cursor:pointer; transition:.2s}
+    .chip.active{background:var(--accent); color:white; border-color:transparent}
+
+    .toolbar{display:flex; flex-wrap:wrap; gap:10px; align-items:center; justify-content:space-between; margin:18px 0}
+    .tabs{display:flex; gap:8px}
+    .btn{background:var(--card); border:1px solid var(--border); color:var(--text); padding:10px 12px; border-radius:10px; cursor:pointer}
+    .btn.primary{background:var(--accent); border-color:transparent}
+    .select{background:var(--card); border:1px solid var(--border); color:var(--text); padding:10px 12px; border-radius:10px}
+
+    .grid{display:grid; grid-template-columns:repeat(12,1fr); gap:16px}
+    @media(max-width:1100px){.grid{grid-template-columns:repeat(8,1fr)}}
+    @media(max-width:720px){.grid{grid-template-columns:repeat(4,1fr)}}
+
+    .card{grid-column:span 3; background:var(--card); border:1px solid var(--border); border-radius:16px; overflow:hidden; box-shadow:var(--shadow); display:flex; flex-direction:column}
+    @media(max-width:1100px){.card{grid-column:span 4}}
+    @media(max-width:720px){.card{grid-column:span 4}}
+
+    .thumb{aspect-ratio:4/3; background:#0b0f17; position:relative}
+    .thumb img{width:100%; height:100%; object-fit:cover; display:block}
+    .badge{position:absolute; top:10px; left:10px; background:var(--accent-2); color:#06210f; padding:6px 8px; border-radius:8px; font-size:12px; font-weight:700}
+    .badge.warn{background:var(--warn); color:#1f1303}
+
+    .content{padding:14px; display:flex; gap:14px; flex-direction:column}
+    .title{font-size:16px; font-weight:700; line-height:1.2}
+    .price{display:flex; align-items:baseline; gap:8px}
+    .price .now{font-size:18px; font-weight:800}
+    .price .old{color:var(--muted); text-decoration:line-through; font-size:13px}
+    .meta{display:flex; justify-content:space-between; align-items:center; color:var(--muted); font-size:13px}
+    .star{color:#ffd96a}
+
+    .card .row{display:flex; gap:8px}
+    .card .row .btn{flex:1}
+
+    .empty{padding:40px; text-align:center; color:var(--muted); border:1px dashed var(--border); border-radius:16px; background:rgba(20,25,34,.5)}
+
+    footer{margin-top:40px; border-top:1px solid var(--border); color:var(--muted)}
+    .foot{display:flex; gap:16px; justify-content:space-between; padding:20px 0}
+  </style>
+</head>
+<body>
+  <header>
+    <div class="container head">
+      <div class="brand">
+        <div class="logo">☆</div>
+        <h1>Демо‑каталог</h1>
+      </div>
+      <div class="actions" aria-label="Быстрые действия">
+        <button class="btn" id="cartBtn">Корзина <span id="cartCount" aria-live="polite">0</span></button>
+        <button class="btn">Войти</button>
+      </div>
+      <div class="search" style="grid-column:1/-1">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M21 21l-3.5-3.5M10.5 18A7.5 7.5 0 1 1 18 10.5 7.5 7.5 0 0 1 10.5 18Z" stroke="#8b95a7" stroke-width="2" stroke-linecap="round"/></svg>
+        <input id="searchInput" placeholder="Поиск товаров… (например, 'крем' или 'телефон')"/>
+      </div>
+      <div class="chipbar" id="chipbar" style="grid-column:1/-1"></div>
+    </div>
+  </header>
+
+  <main class="container">
+    <div class="toolbar">
+      <div class="tabs" role="tablist" aria-label="Категории">
+        <button class="chip active" data-cat="all">Все</button>
+        <button class="chip" data-cat="beauty">Красота</button>
+        <button class="chip" data-cat="electronics">Электроника</button>
+        <button class="chip" data-cat="home">Дом</button>
+        <button class="chip" data-cat="fashion">Одежда</button>
+      </div>
+      <div class="row" style="display:flex; gap:10px; align-items:center">
+        <label for="sort" class="sr-only">Сортировка</label>
+        <select id="sort" class="select">
+          <option value="popular">По популярности</option>
+          <option value="price-asc">Цена: по возрастанию</option>
+          <option value="price-desc">Цена: по убыванию</option>
+          <option value="name-asc">Название: А→Я</option>
+          <option value="name-desc">Название: Я→А</option>
+        </select>
+      </div>
+    </div>
+
+    <div id="grid" class="grid" role="list"></div>
+    <div id="empty" class="empty" hidden>По вашему запросу ничего не найдено. Измените фильтры или сбросьте поиск.</div>
+  </main>
+
+  <footer>
+    <div class="container foot">
+      <div>© <span id="year"></span> Мой мини‑магазин</div>
+      <div>Поддержка: <a href="#">help@example.com</a></div>
+    </div>
+  </footer>
+
+  <!-- Modal -->
+  <dialog id="modal" style="border:none; border-radius:16px; padding:0; max-width:760px; width:96%; background:var(--card); color:var(--text); box-shadow:var(--shadow)">
+    <div style="display:flex; flex-wrap:wrap">
+      <div style="flex:1 1 340px; min-width:300px; background:#0b0f17"><img id="mImg" alt="" style="width:100%; height:100%; object-fit:cover"></div>
+      <div style="flex:1 1 340px; min-width:280px; padding:20px">
+        <h3 id="mTitle" style="margin:0 0 6px"></h3>
+        <div id="mPrice" class="price" style="margin:6px 0 10px"></div>
+        <p id="mDesc" style="color:var(--muted); line-height:1.6"></p>
+        <div class="row" style="margin-top:12px">
+          <button class="btn primary" id="mAdd">Добавить в корзину</button>
+          <button class="btn" id="mClose">Закрыть</button>
+        </div>
+      </div>
+    </div>
+  </dialog>
+
+  <script>
+    // ==== Demo data ====
+    const PRODUCTS = [
+      {id:1, title:'Кушон для лица GlowCushion', category:'beauty', price:10990, oldPrice:12990, rating:4.7, stock:12, tag:'Новинка', img:'https://images.unsplash.com/photo-1512496015851-a90fb38ba796?auto=format&fit=crop&w=1200&q=60', desc:'Лёгкое покрытие и сияющий финиш. Подходит для чувствительной кожи.'},
+      {id:2, title:'Беспроводные наушники AirBeat X', category:'electronics', price:39990, oldPrice:0, rating:4.6, stock:5, tag:'-20%', img:'https://images.unsplash.com/photo-1518443440020-6f588f1e0b02?auto=format&fit=crop&w=1200&q=60', desc:'До 30 часов воспроизведения. Шумоподавление и быстрый заряд.'},
+      {id:3, title:'Худи SoftCore Oversize', category:'fashion', price:24990, oldPrice:27990, rating:4.4, stock:22, tag:'Хит', img:'https://images.unsplash.com/photo-1520975916090-3105956dac38?auto=format&fit=crop&w=1200&q=60', desc:'Мягкий флис, свободный крой, базовые цвета на каждый день.'},
+      {id:4, title:'Умная лампа AmbiLight', category:'home', price:15990, oldPrice:0, rating:4.5, stock:8, tag:'RGB', img:'https://images.unsplash.com/photo-1517976487492-5762463fe7d3?auto=format&fit=crop&w=1200&q=60', desc:'Тёплый и холодный свет, управление со смартфона, расписания.'},
+      {id:5, title:'Крем для рук Matcha Care', category:'beauty', price:2990, oldPrice:3990, rating:4.8, stock:40, tag:'-25%', img:'https://images.unsplash.com/photo-1515378960530-7c0da6231fb1?auto=format&fit=crop&w=1200&q=60', desc:'Интенсивное увлажнение, зелёный чай и вит. Е. Не липкий.'},
+      {id:6, title:'Блендер KitchenPro Mini', category:'home', price:18990, oldPrice:21990, rating:4.1, stock:3, tag:'Скидка', img:'https://images.unsplash.com/photo-1488900128323-21503983a07e?auto=format&fit=crop&w=1200&q=60', desc:'Компактный, 2 скорости, стакан 600 мл. Идеален для смузи.'},
+      {id:7, title:'Смартфон Neo 12', category:'electronics', price:199990, oldPrice:219990, rating:4.9, stock:9, tag:'Топ', img:'https://images.unsplash.com/photo-1510557880182-3d4d3cba35f1?auto=format&fit=crop&w=1200&q=60', desc:'AMOLED 120 Гц, 256 ГБ, тройная камера 50 МП, 5000 мА·ч.'},
+      {id:8, title:'Сумка Crossbody Mini', category:'fashion', price:14990, oldPrice:0, rating:4.2, stock:18, tag:'', img:'https://images.unsplash.com/photo-1548036328-c9fa89d128fa?auto=format&fit=crop&w=1200&q=60', desc:'Лёгкая и вместительная. Регулируемый ремень, карманы для мелочей.'}
+    ];
+
+    const CATEGORIES = {
+      all:'Все', beauty:'Красота', electronics:'Электроника', home:'Дом', fashion:'Одежда'
+    };
+
+    // ==== State ====
+    let state = { q:'', cat:'all', sort:'popular', cart:[], lastViewed:null };
+
+    // ==== Elements ====
+    const grid = document.getElementById('grid');
+    const empty = document.getElementById('empty');
+    const searchInput = document.getElementById('searchInput');
+    const sortSel = document.getElementById('sort');
+    const modal = document.getElementById('modal');
+    const mImg = document.getElementById('mImg');
+    const mTitle = document.getElementById('mTitle');
+    const mPrice = document.getElementById('mPrice');
+    const mDesc = document.getElementById('mDesc');
+    const mAdd = document.getElementById('mAdd');
+    const mClose = document.getElementById('mClose');
+    const cartCount = document.getElementById('cartCount');
+
+    // dynamic chipbar (tags from products)
+    const chipbar = document.getElementById('chipbar');
+    const tags = [...new Set(PRODUCTS.map(p=>p.tag).filter(Boolean))];
+    chipbar.innerHTML = tags.map(t=>`<span class="chip" data-tag="${t}">${t}</span>`).join('');
+    chipbar.addEventListener('click', (e)=>{
+      const btn = e.target.closest('.chip');
+      if(!btn) return;
+      const tag = btn.dataset.tag;
+      // toggle selection
+      const had = btn.classList.toggle('active');
+      // deactivate others if needed (single-select feel)
+      chipbar.querySelectorAll('.chip').forEach(c=>{ if(c!==btn) c.classList.remove('active'); });
+      state.tag = had ? tag : undefined;
+      render();
+    });
+
+    // Footer year
+    document.getElementById('year').textContent = new Date().getFullYear();
+
+    // Header tabs (categories)
+    document.querySelectorAll('[data-cat]').forEach(btn=>{
+      btn.addEventListener('click', ()=>{
+        document.querySelectorAll('[data-cat]').forEach(b=>b.classList.remove('active'));
+        btn.classList.add('active');
+        state.cat = btn.dataset.cat;
+        render();
+      });
+    });
+
+    // Search
+    searchInput.addEventListener('input', ()=>{
+      state.q = searchInput.value.trim().toLowerCase();
+      render();
+    });
+
+    // Sort
+    sortSel.addEventListener('change', ()=>{ state.sort = sortSel.value; render(); });
+
+    // Modal events
+    mClose.addEventListener('click', ()=> modal.close());
+    modal.addEventListener('click', (e)=>{ if(e.target === modal) modal.close(); });
+
+    // Render helpers
+    function money(x){ return x.toLocaleString('ru-RU') + ' ₸'; }
+
+    function applyFilters(list){
+      let res = [...list];
+      if(state.cat !== 'all') res = res.filter(p=>p.category===state.cat);
+      if(state.q) res = res.filter(p => (p.title+" "+p.desc).toLowerCase().includes(state.q));
+      if(state.tag) res = res.filter(p=>p.tag===state.tag);
+      switch(state.sort){
+        case 'price-asc': res.sort((a,b)=>a.price-b.price); break;
+        case 'price-desc': res.sort((a,b)=>b.price-a.price); break;
+        case 'name-asc': res.sort((a,b)=>a.title.localeCompare(b.title,'ru')); break;
+        case 'name-desc': res.sort((a,b)=>b.title.localeCompare(a.title,'ru')); break;
+        default: res.sort((a,b)=>b.rating-a.rating); // popular ~ rating
+      }
+      return res;
+    }
+
+    function cardTpl(p){
+      const old = p.oldPrice>0 ? `<span class="old">${money(p.oldPrice)}</span>` : '';
+      const badge = p.tag ? `<div class="badge${p.tag.includes('%')?' warn':''}">${p.tag}</div>` : '';
+      return `
+      <article class="card" role="listitem">
+        <div class="thumb">
+          ${badge}
+          <img src="${p.img}" alt="${p.title}" loading="lazy">
+        </div>
+        <div class="content">
+          <div class="title">${p.title}</div>
+          <div class="price"><span class="now">${money(p.price)}</span>${old}</div>
+          <div class="meta"><span>★ ${p.rating}</span><span>В наличии: ${p.stock}</span></div>
+          <div class="row">
+            <button class="btn primary" data-add="${p.id}">В корзину</button>
+            <button class="btn" data-view="${p.id}">Быстрый просмотр</button>
+          </div>
+        </div>
+      </article>`;
+    }
+
+    function openModal(p){
+      state.lastViewed = p.id;
+      mImg.src = p.img; mImg.alt = p.title; mTitle.textContent = p.title;
+      mPrice.innerHTML = `<span class="now">${money(p.price)}</span>` + (p.oldPrice>0?` <span class="old">${money(p.oldPrice)}</span>`:'');
+      mDesc.textContent = p.desc;
+      mAdd.onclick = ()=> addToCart(p.id);
+      if(typeof modal.showModal === 'function') modal.showModal(); else modal.setAttribute('open','');
+    }
+
+    function addToCart(id){
+      state.cart.push(id);
+      cartCount.textContent = state.cart.length;
+    }
+
+    function bindCardEvents(){
+      grid.querySelectorAll('[data-add]').forEach(btn=>btn.addEventListener('click',()=>addToCart(+btn.dataset.add)));
+      grid.querySelectorAll('[data-view]').forEach(btn=>btn.addEventListener('click',()=>{
+        const p = PRODUCTS.find(x=>x.id===+btn.dataset.view); openModal(p);
+      }));
+    }
+
+    function render(){
+      const list = applyFilters(PRODUCTS);
+      grid.innerHTML = list.map(cardTpl).join('');
+      empty.hidden = list.length>0;
+      bindCardEvents();
+    }
+
+    // First paint
+    render();
+
+    // Cart button demo
+    document.getElementById('cartBtn').addEventListener('click',()=>{
+      alert('В демо корзине: '+state.cart.length+' товар(а). Здесь может открываться страница / корзина.');
+    });
+  </script>
+</body>
+</html>
